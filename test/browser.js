@@ -13,5 +13,5 @@ exports.load = function(path) {
 };
 
 // default modules
-exports.load('public/vendor/three.js/Three.js');
-exports.load('public/vendor/underscore-min.js');
+exports.load('vendor/three.js/Three.js');
+exports.load('vendor/underscore-min.js');
