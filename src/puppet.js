@@ -1,5 +1,37 @@
+// # puppet module
 var puppet = (function() {
   var exports = {};
+
+  // ## public functions
+
+  exports.triangulate = function(voxels) {
+    var vertices = exports.triangulateVoxels(voxels),
+        materials = exports.extractMaterials(voxels),
+        mesh = exports.uniqueVertices(vertices, materials.indices);
+
+    return _.extend({}, mesh, {
+      metadata: {
+        formatVersion: 3,
+        vertices: mesh.vertices.length / 3,
+        faces: mesh.faces.length / 6,
+        normals: 0,
+        colors: 0,
+        uvs: 0,
+        materials: materials.materials.length,
+        morphTargets: 0
+      },
+      materials: materials.materials,
+      morphTargets: [],
+      normals: [],
+      colors: [],
+      uvs: []
+    });
+  };
+
+
+  // ## private functions
+
+  // ### for triangulation
 
   exports.extractMaterials = function(voxels) {
     var i2m = [], m2i = {}, indices = [];
@@ -61,9 +93,9 @@ var puppet = (function() {
       Array.prototype.push.apply(
         vertices,
         exports.triangulateSingleVoxel(
-          voxels[4 * i],
-          voxels[4 * i + 1],
-          voxels[4 * i + 2]
+          voxels[i],
+          voxels[i + 1],
+          voxels[i + 2]
         )
       );
     }
@@ -97,30 +129,6 @@ var puppet = (function() {
       vertices: _.flatten(i2v),
       faces: faces
     };
-  };
-
-  exports.triangulate = function(voxels) {
-    var vertices = exports.triangulateVoxels(voxels),
-        materials = exports.extractMaterials(voxels),
-        mesh = exports.uniqueVertices(vertices, materials.indices);
-
-    return _.extend({}, mesh, {
-      metadata: {
-        formatVersion: 3,
-        vertices: mesh.vertices.length / 3,
-        faces: mesh.faces.length / 6,
-        normals: 0,
-        colors: 0,
-        uvs: 0,
-        materials: materials.materials.length,
-        morphTargets: 0
-      },
-      materials: materials.materials,
-      morphTargets: [],
-      normals: [],
-      colors: [],
-      uvs: [[]]
-    });
   };
 
   return exports;
