@@ -59,7 +59,24 @@ var puppet = (function() {
     };
   };
 
-  exports.toHsvImage = function(bitmap) {
+  exports.toHsvImage = function(imageData) {
+    var result = {
+          width: imageData.width,
+          height: imageData.height,
+          data: []
+        },
+        size = result.width * result.height * 4;
+
+    for (var i = 0; i < size; i += 4) {
+      result.data.push(exports.toHsv(
+        imageData.data[i],
+        imageData.data[i + 1],
+        imageData.data[i + 2],
+        imageData.data[i + 3]
+      ));
+    }
+
+    return result;
   };
 
   exports.findImportantPixelPair = function(bitmaps) {

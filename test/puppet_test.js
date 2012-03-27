@@ -13,6 +13,59 @@ describe('puppet.toHsv', function() {
       a: 123 / 255.0
     });
   });
+
+  it('accepts (0, 0, 0) also', function() {
+    expect(puppet.toHsv(100, 120, 100, 123)).to.eql({
+      h: 120 / 180.0 * Math.PI,
+      s: (120 - 100) / 120,
+      v: 120 / 255.0,
+      a: 123 / 255.0
+    });
+  });
+});
+
+describe('puppet.toHsvImage', function() {
+  it('converts imageData of canvas into internal hsv image format', function() {
+    expect(puppet.toHsvImage({
+      width: 2,
+      height: 2,
+      data: [
+        123, 112, 12, 231,
+        23, 52, 212, 231,
+        83, 62, 112, 231,
+        33, 112, 17, 210
+      ]
+    })).to.eql({
+      width: 2,
+      height: 2,
+      data: [
+        {
+          h: 0.9434212172942322,
+          s: 0.9024390243902439,
+          v: 0.4823529411764706,
+          a: 0.9058823529411765
+        },
+        {
+          h: 3.141592653589793,
+          s: 0.8915094339622641,
+          v: 0.8313725490196079,
+          a: 0.9058823529411765
+        },
+        {
+          h: 3.581415625092364,
+          s: 0.44642857142857145,
+          v: 0.4392156862745098,
+          a: 0.9058823529411765
+        },
+        {
+          h: 1.9180249885074525,
+          s: 0.8482142857142857,
+          v: 0.4392156862745098,
+          a: 0.8235294117647058
+        }
+      ]
+   });
+  });
 });
 
 describe('puppet.extractMaterials', function() {
