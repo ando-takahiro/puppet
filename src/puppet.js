@@ -4,6 +4,82 @@ var puppet = (function() {
 
   // ## public functions
 
+  exports.reconstruction = function(src) {
+    exports.loadImage(src, function(img) {
+      var hsvImg = exports.toHsvImage(img);
+
+      return exports.triangulate(
+        exports.generateVoxels(
+          hsvImg,
+          exports.guessCameraAngles(exports.findImportantPixelPair(hsvImg))
+        )
+      );
+    });
+  };
+
+  // ## private functions
+
+  // ### reconstruction voxels
+ 
+  exports.loadImage = function(src, onload) {
+    var img = new Image();
+    img.onload = function() {
+      onload(img);
+    };
+    img.src = src;
+  };
+
+  exports.toHsv = function(r255, g255, b255, a255) {
+    var r = r255 / 255.0, g = g255 / 255.0, b = b255 / 255.0,
+        max, min, h;
+
+    if (r >= g && r >= b) {
+      max = r;
+      min = Math.min(g, b);
+      h = Math.PI * (g - b) / ((max - min) * 3);
+    } else if (g >= r && g >= b) {
+      max = g;
+      min = Math.min(r, b);
+      h = Math.PI * (b - r) / ((max - min) * 3) + 2 * Math.PI / 3;
+    } else {
+      max = b;
+      min = Math.min(r, g);
+      h = Math.PI * (r - b) / ((max - min) * 3) + 4 * Math.PI / 3;
+    }
+
+    if (h < 0) {
+      h += Math.PI * 2;
+    }
+
+    return {
+      h: h,
+      s: (max - min) / max,
+      v: max,
+      a: a255 / 255.0
+    };
+  };
+
+  exports.toHsvImage = function(bitmap) {
+  };
+
+  exports.findImportantPixelPair = function(bitmaps) {
+    return {
+      frontX: 0, frontY: 0,
+      leftX: 0, leftY: 0
+    };
+  };
+
+  exports.guessCameraAngles = function(pixelPair) {
+    return {
+      horizontal: 0, vertical: 0
+    };
+  };
+
+  exports.generateVoxels = function(bitmaps, angles) {
+    return [/*x, y, z, col, ...*/];
+  };
+
+  // ### triangulation
   exports.triangulate = function(voxels) {
     var vertices = exports.triangulateVoxels(voxels),
         materials = exports.extractMaterials(voxels),
@@ -28,10 +104,6 @@ var puppet = (function() {
     });
   };
 
-
-  // ## private functions
-
-  // ### for triangulation
 
   exports.extractMaterials = function(voxels) {
     var i2m = [], m2i = {}, indices = [];

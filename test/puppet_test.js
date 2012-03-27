@@ -4,6 +4,17 @@ var expect = require('expect.js'),
 
 browser.load('src/puppet.js');
 
+describe('puppet.toHsv', function() {
+  it('converts into hsv color space', function() {
+    expect(puppet.toHsv(100, 120, 100, 123)).to.eql({
+      h: 120 / 180.0 * Math.PI,
+      s: (120 - 100) / 120,
+      v: 120 / 255.0,
+      a: 123 / 255.0
+    });
+  });
+});
+
 describe('puppet.extractMaterials', function() {
   it('collets materials and removes duplication', function() {
     expect(puppet.extractMaterials(
