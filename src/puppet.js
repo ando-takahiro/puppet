@@ -4,22 +4,40 @@ var puppet = (function() {
 
   // ## public functions
 
-  exports.reconstruction = function(src) {
-    exports.loadImage(src, function(img) {
-      var hsvImg = exports.toHsvImage(img);
+  exports.reconstruction = function(urls, onSuccess) {
+    var count = _.size(urls),
+        images = {};
 
-      return exports.triangulate(
-        exports.generateVoxels(
-          hsvImg,
-          exports.guessCameraAngles(exports.findImportantPixelPair(hsvImg))
-        )
-      );
+    _.map(urls, function(url, face) {
+      exports.loadImage(url, function(img) {
+        --count;
+        images[face] = img;
+        if (count <= 0) {
+          exports.doReconstruction(images, onSuccess);
+        }
+      });
     });
   };
 
   // ## private functions
 
   // ### reconstruction voxels
+  exports.doReconstruction = function(images, onSuccess) {
+    var hsvImages = {};
+
+    for (var k in images) {
+      hsvImages[k] = exports.toHsvImage(images[k]);
+    }
+
+    return exports.triangulate(
+      exports.generateVoxels(
+        hsvImages,
+        exports.guessCameraAngles(
+          exports.findImportantPixelPair(hsvImages.front, hsvImages.right)
+        )
+      )
+    );
+  };
  
   exports.loadImage = function(src, onload) {
     var img = new Image();
@@ -79,11 +97,57 @@ var puppet = (function() {
     return result;
   };
 
-  exports.findImportantPixelPair = function(bitmaps) {
-    return {
-      frontX: 0, frontY: 0,
-      leftX: 0, leftY: 0
-    };
+  exports.readColor = function(hsvImage, x, y) {
+    x = Math.max(0, Math.min(hsvImage.width - 1, x));
+    y = Math.max(0, Math.min(hsvImage.height - 1, y));
+    return hsvImage.data[y * hsvImage.width + x];
+  };
+
+  // Following block matching implementation is strongly based on this document.
+  // http://www.cvl.iis.u-tokyo.ac.jp/~vanno/Programming/stereo_program.pdf
+  // I use simplest algorithm SAD, but add small change for calc difference.
+
+  exports.diffHsv = function(hsv1, hsv2) {
+    return Math.abs(hsv1.h - hsv2.h) +
+           Math.abs(hsv1.s - hsv2.s) +
+           Math.abs(hsv1.v - hsv2.v) +
+           Math.abs(hsv1.a - hsv2.a);
+  };
+
+  exports.calcSad = function(hsvImage1, x1, y1, hsvImage2, x2, y2, blockSize) {
+    var result = 0;
+    for (var y = -blockSize; y < blockSize; ++y) {
+      for (var x = -blockSize; x < blockSize; ++x) {
+        var hsv1 = exports.readColor(hsvImage1, x1 + x, y1 + y),
+            hsv2 = exports.readColor(hsvImage2, x2 + x, y2 + y);
+
+        result += exports.diffHsv(hsv1, hsv2);
+      }
+    }
+    return result;
+  };
+
+  var SEARCH_RANGE = 10, SAD_BLOCK_SIZE = 5;
+  exports.findImportantPixelPair = function(front, right) {
+    var minSad = Number.MAX_VALUE,
+        result;
+
+    for (var y1 = 0; y1 < front.height; ++y1) {
+      for (var x1 = front.width / 2; x1 < front.width; ++x1) {
+        var color = exports.readColor(front, x1, y1);
+        if (exports.isMatchable(color)) {
+          for (var y2 = Math.max(y1 - SEARCH_RANGE, 0); y2 < Math.max(y1 + SEARCH_RANGE, front.height); ++y2) {
+            for (var x2 = Math.max(x1 - SEARCH_RANGE, 0); x2 < Math.max(x1 + SEARCH_RANGE, front.width); ++x2) {
+              var sad = exports.calcSad(front, x1, y1, right, x2, y2, SAD_BLOCK_SIZE);
+              if (sad < minSad) {
+                result = {frontX: x1, frontY: y1, rightX: x2, rightY: y2};
+              }
+            }
+          }
+        }
+      }
+    }
+    return result;
   };
 
   exports.guessCameraAngles = function(pixelPair) {

@@ -68,6 +68,33 @@ describe('puppet.toHsvImage', function() {
   });
 });
 
+describe('puppet.readColor', function() {
+  var hsvImage = puppet.toHsvImage({
+    width: 2,
+    height: 2,
+    data: [
+      123, 112, 12, 231,
+      23, 52, 212, 231,
+      83, 62, 112, 231,
+      33, 112, 17, 210
+    ]
+  });
+
+  it('reads color at x, y in hsvImage', function() {
+    expect(puppet.readColor(hsvImage, 1, 1)).to.eql({
+      h: 1.9180249885074525,
+      s: 0.8482142857142857,
+      v: 0.4392156862745098,
+      a: 0.8235294117647058
+    });
+  });
+
+  it('fetches with clamp', function() {
+    expect(puppet.readColor(hsvImage, -1, -1)).to.eql(puppet.readColor(hsvImage, 0, 0));
+    expect(puppet.readColor(hsvImage, 100, -1)).to.eql(puppet.readColor(hsvImage, 1, 0));
+  });
+});
+
 describe('puppet.extractMaterials', function() {
   it('collets materials and removes duplication', function() {
     expect(puppet.extractMaterials(
