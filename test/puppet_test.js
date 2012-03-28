@@ -89,9 +89,23 @@ describe('puppet.readColor', function() {
     });
   });
 
-  it('fetches with clamp', function() {
+  it('fetches with coordinate clamp', function() {
     expect(puppet.readColor(hsvImage, -1, -1)).to.eql(puppet.readColor(hsvImage, 0, 0));
     expect(puppet.readColor(hsvImage, 100, -1)).to.eql(puppet.readColor(hsvImage, 1, 0));
+  });
+});
+
+describe('puppet.diffHsv', function() {
+  it('calculates difference between 2 colors', function() {
+    expect(puppet.diffHsv(
+      {h: 1, s: 0.1, v: 0.2, a: 0.3},
+      {h: 1, s: 0.1, v: 0.2, a: 0.3}
+    )).to.be(0);
+
+    expect(puppet.diffHsv(
+      {h: 1, s: 0.1, v: 0.2, a: 0.3},
+      {h: 1.1, s: 0.3, v: 0.21, a: 0.31}
+    )).to.be(0.32000000000000006);
   });
 });
 
