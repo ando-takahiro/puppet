@@ -108,10 +108,14 @@ var puppet = (function() {
   // I use simplest algorithm SAD, but add small change for calc difference.
 
   exports.diffHsv = function(hsv1, hsv2) {
-    return Math.abs(hsv1.h - hsv2.h) +
-           Math.abs(hsv1.s - hsv2.s) +
-           Math.abs(hsv1.v - hsv2.v) +
-           Math.abs(hsv1.a - hsv2.a);
+    if (hsv1.a > 0 && hsv2.a > 0) {
+      return Math.abs(hsv1.h - hsv2.h) +
+             Math.abs(hsv1.s - hsv2.s) +
+             Math.abs(hsv1.v - hsv2.v) +
+             Math.abs(hsv1.a - hsv2.a);
+    } else {
+      return 0;
+    }
   };
 
   exports.calcSad = function(hsvImage1, x1, y1, hsvImage2, x2, y2, blockSize) {
@@ -135,11 +139,12 @@ var puppet = (function() {
     for (var y1 = 0; y1 < front.height; ++y1) {
       for (var x1 = front.width / 2; x1 < front.width; ++x1) {
         var color = exports.readColor(front, x1, y1);
-        if (exports.isMatchable(color)) {
-          for (var y2 = Math.max(y1 - SEARCH_RANGE, 0); y2 < Math.max(y1 + SEARCH_RANGE, front.height); ++y2) {
-            for (var x2 = Math.max(x1 - SEARCH_RANGE, 0); x2 < Math.max(x1 + SEARCH_RANGE, front.width); ++x2) {
+        if (color.a > 0) {
+          for (var y2 = Math.max(y1 - SEARCH_RANGE, 0); y2 < Math.min(y1 + SEARCH_RANGE, right.height); ++y2) {
+            for (var x2 = 0; x2 < right.width; ++x2) {
               var sad = exports.calcSad(front, x1, y1, right, x2, y2, SAD_BLOCK_SIZE);
               if (sad < minSad) {
+                minSad = sad;
                 result = {frontX: x1, frontY: y1, rightX: x2, rightY: y2};
               }
             }

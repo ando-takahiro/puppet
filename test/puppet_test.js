@@ -107,6 +107,79 @@ describe('puppet.diffHsv', function() {
       {h: 1.1, s: 0.3, v: 0.21, a: 0.31}
     )).to.be(0.32000000000000006);
   });
+
+  it('treats as same color when both alpha components are 0', function() {
+    expect(puppet.diffHsv(
+      {h: 1, s: 0.1, v: 0.2, a: 0.1},
+      {h: 1, s: 0.1, v: 0.21, a: 0.1}
+    )).to.be.within(0.009, 0.01);
+
+    expect(puppet.diffHsv(
+      {h: 1, s: 0.1, v: 0.2, a: 0.0},
+      {h: 1, s: 0.1, v: 0.21, a: 0.0}
+    )).to.be(0.0);
+  });
+});
+
+describe('puppet.calcSad', function() {
+  var hsvImage1 = puppet.toHsvImage({
+        width: 2,
+        height: 2,
+        data: [
+          123, 112, 12, 231,
+          23, 52, 212, 231,
+          83, 62, 112, 231,
+          33, 112, 17, 210
+        ]
+      }),
+      hsvImage2 = puppet.toHsvImage({
+        width: 2,
+        height: 2,
+        data: [
+          23, 112, 12, 231,
+          23, 52, 212, 231,
+          83, 62, 112, 231,
+          33, 112, 17, 210
+        ]
+      });
+
+  it('calculates SAD (Sum. of Absolute Diﬀerence)', function() {
+    expect(puppet.calcSad(hsvImage1, 0, 0, hsvImage1, 0, 0, 2)).to.be(0);
+    expect(puppet.calcSad(hsvImage1, 1, 1, hsvImage2, 1, 1, 1)).to.be(1.0885012909023992);
+  });
+});
+
+describe('puppet.findImportantPixelPair', function() {
+  var hsvImage1 = puppet.toHsvImage({
+        width: 2,
+        height: 2,
+        data: [
+          123, 112, 12, 231,
+          23, 52, 212, 231,
+          83, 62, 112, 231,
+          33, 112, 17, 210
+        ]
+      }),
+      hsvImage2 = puppet.toHsvImage({
+        width: 2,
+        height: 2,
+        data: [
+          23, 112, 12, 231,
+          23, 52, 212, 231,
+          83, 62, 112, 231,
+          33, 112, 17, 210
+        ]
+      });
+
+  it('finds minimum SAD pair between *right half* of front image and right image', function() {
+    expect(puppet.findImportantPixelPair(hsvImage1, hsvImage1)).to.eql({
+      frontX: 1, frontY: 0, rightX: 1, rightY: 0
+    });
+
+    expect(puppet.findImportantPixelPair(hsvImage1, hsvImage2)).to.eql({
+      frontX: 1, frontY: 1, rightX: 1, rightY: 1
+    });
+  });
 });
 
 describe('puppet.extractMaterials', function() {
