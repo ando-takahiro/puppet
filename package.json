@@ -1,0 +1,16 @@
+{
+  "author": "ANDO Takahiro",
+  "name": "puppet",
+  "description": "pixel art to voxel model",
+  "version": "0.0.0",
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/ando-takahiro/puppet.git"
+  },
+  "dependencies": {},
+  "devDependencies": {
+    "mocha": "*",
+    "expect.js": "*",
+    "sinon": "*"
+  }
+}
