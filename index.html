@@ -3,6 +3,8 @@
   <head>
     <title>puppet</title>
     <meta name="viewport" content="width=device-width, minimum-scale=1.0, maximum-scale=1.0">
+    <meta charset="utf-8">
+
     <style>
       * {
         padding: 0;
@@ -32,9 +34,144 @@
         height: 100%;
       }
     </style>
+
+    <script src="vendor/three.js/Three.js"></script>
+    <script src="vendor/three.js/Detector.js"></script>
+    <script src="vendor/three.js/Stats.js"></script>
+
+    <script src="vendor/jquery-1.7.1.min.js"></script>
+    <script src="vendor/Tween.js"></script>
+    <script src="vendor/underscore-min.js"></script>
+    <script src="vendor/mustache.min.js"></script>
+
+    <script src="src/puppet.js"></script>
+
+    <link  href="css/main.css" rel="stylesheet"/>
   </head>
   <body>
-    <iframe src='puppet.html' frameborder='0'></iframe>
+    <!-- three.js container -->
+    <div id="container"></div>
+
+    <script type="text/javascript">
+      var stats, scene, renderer, camera, mesh;
+
+      if (!init()) {
+        TWEEN.start();
+        animate();
+      }
+
+      // init the scene
+      function init(){
+        setupEnv();
+        setupModel();
+      }
+
+      // camera
+      var lastX, lastY, isDragging;
+      document.addEventListener('mousedown', function(event) {
+        isDragging = true;
+        lastX = event.clientX;
+        lastY = event.clientY;
+      });
+      document.addEventListener('mousemove', function(event) {
+        if (isDragging) {
+          var s = 2;
+
+          camera.position.x += (event.clientX - lastX) / window.innerWidth * s;
+          camera.position.y += (event.clientY - lastY) / window.innerHeight * s;
+
+          camera.lookAt(scene.position);
+        }
+			});
+      document.addEventListener('mouseup', function(event) {
+        isDragging = false;
+      });
+
+      // animation loop
+      function animate() {
+        if (mesh) {
+          mesh.rotation.y += 0.01;
+        }
+
+        // loop on request animation loop
+        // - it has to be at the begining of the function
+        // - see details at http://my.opera.com/emoller/blog/2011/12/20/requestanimationframe-for-smart-er-animating
+        requestAnimationFrame(animate);
+
+        // do the render
+        render();
+
+        // update stats
+        stats.update();
+      }
+
+      // render the scene
+      function render() {
+        // actually render the scene
+        renderer.render(scene, camera);
+      }
+
+      //
+      // setuppers
+      //
+      function setupEnv() {
+        if (Detector.webgl) {
+          renderer = new THREE.WebGLRenderer({
+            antialias: true,	// to get smoother output
+            preserveDrawingBuffer: true	// to allow screenshot
+          });
+          renderer.setClearColorHex(0xBBBBBB, 1);
+        // uncomment if webgl is required
+        } else {
+        	Detector.addGetWebGLMessage();
+        	throw new Error('we need webgl');
+        }
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        document.getElementById('container').appendChild(renderer.domElement);
+
+        // add Stats.js - https://github.com/mrdoob/stats.js
+        stats = new Stats();
+        stats.domElement.style.position	= 'absolute';
+        stats.domElement.style.bottom	= '0px';
+        document.body.appendChild(stats.domElement);
+
+        // create a scene
+        scene = new THREE.Scene();
+
+        // put a camera in the scene
+        camera = new THREE.PerspectiveCamera(35, window.innerWidth / window.innerHeight, 1, 10000);
+        camera.position.set(0, 10, 15);
+        camera.lookAt(new THREE.Vector3());
+        scene.add(camera);
+
+        // Light
+				var directionalLight = new THREE.DirectionalLight(0xffeedd);
+				directionalLight.position.set(0, -70, 100).normalize();
+				scene.add(directionalLight);
+      }
+
+      function setupModel() {
+				var loader = new THREE.JSONLoader();
+
+        puppet.reconstruction({
+          front: 'image/front.png',
+          left: 'image/left.png',
+          right: 'image/right.png',
+          back: 'image/back.png',
+        }, function(model) {
+          loader.createModel(model, function(geometry) {
+            mesh = new THREE.Mesh(geometry, new THREE.MeshFaceMaterial()),
+                s = 0.2;
+
+            mesh.scale.set(s, s, s);
+            mesh.rotation.set(Math.PI, 0, 0);
+            scene.add(mesh);
+          }, '');
+        });
+      }
+
+    </script>
+
     <a href="http://github.com/ando-takahiro/puppet"><img style="position: absolute; top: 0; right: 0; border: 0;" src="https://a248.e.akamai.net/assets.github.com/img/e6bef7a091f5f3138b8cd40bc3e114258dd68ddf/687474703a2f2f73332e616d617a6f6e6177732e636f6d2f6769746875622f726962626f6e732f666f726b6d655f72696768745f7265645f6161303030302e706e67" alt="Fork me on GitHub"></a>
   </body>
 </html>
