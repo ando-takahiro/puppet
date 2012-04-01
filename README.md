@@ -1,6 +1,7 @@
 # puppet
 
-pixel art -> voxel character?
+pixel art -> voxel character.
+you can check it [here](http://ando-takahiro.github.com/puppet/).
 
 ## thanks
 
