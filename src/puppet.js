@@ -251,12 +251,38 @@ var puppet = (function() {
     }
   };
 
+  exports.cullByRight = function(voxels, right) {
+    for (var y = 0; y < right.height; ++y) {
+      var min = right.width, max = 0;
+
+      for (var z = 0; z < right.width; ++z) {
+        if (right.data[(z + y * right.width) * 4 + 3] !== 0) {
+          min = Math.min(z, min);
+          max = Math.max(z, max);
+        }
+      }
+
+      for (var x = 0; x < right.width; ++x) {
+        for (var z1 = 0; z1 < min; ++z1) {
+          voxels[x][y][z1] = 0;
+        }
+
+        for (var z2 = max + 1; z2 < right.width; ++z2) {
+          voxels[x][y][z2] = 0;
+        }
+      }
+    }
+  };
+
   exports.generateVoxels = function(images) {
     var voxels = [],
-        w = images.front.width, hw = w / 2;
+        w = images.front.width,
+        hw = w / 2,
+        hh = images.front.height / 2;
 
     exports.fillVoxelLine(voxels, images.front, 1, 0, hw);
     exports.fillVoxelLine(voxels, images.back, -1, hw, w);
+    exports.cullByRight(voxels, images.right);
 
     return _.reduce(voxels, function(ret, plane, x) {
       for (var y = 0; y < plane.length; ++y) {
@@ -264,7 +290,7 @@ var puppet = (function() {
         for (var z = 0; z < line.length; ++z) {
           var c = line[z];
           if ((c >> 24) & 0xFF !== 0) {
-            ret.push(x - hw - 0.5, y - hw - 0.5, hw - z - 0.5, c);
+            ret.push(x - hw - 0.5, y - hh - 0.5, hw - z - 0.5, c);
           }
         }
       }
