@@ -4,6 +4,20 @@ var expect = require('expect.js'),
 
 browser.load('src/puppet.js');
 
+describe('puppet.fitMin', function() {
+  it('finds min output argument of the function', function() {
+    var E = 0.001;
+
+    function f(x) {
+      return x * x;
+    }
+
+    expect(puppet.fitMin(f, -1, 1)).to.be.within(-E, E);
+    expect(puppet.fitMin(f, -0.5, 1)).to.be.within(-E, E);
+    expect(puppet.fitMin(f, -3, 1)).to.be.within(-E, E);
+  });
+});
+
 describe('puppet.toHsv', function() {
   it('converts into hsv color space', function() {
     expect(puppet.toHsv(100, 120, 100, 123)).to.eql({
@@ -179,6 +193,21 @@ describe('puppet.findImportantPixelPair', function() {
     expect(puppet.findImportantPixelPair(hsvImage1, hsvImage2)).to.eql({
       frontX: 1, frontY: 1, rightX: 1, rightY: 1
     });
+  });
+
+  it('returns *undefined* when both images are transparent', function() {
+    var transparentImage = puppet.toHsvImage({
+      width: 2,
+      height: 2,
+      data: [
+        23, 112, 12, 0,
+        23, 52, 212, 0,
+        83, 62, 112, 0,
+        33, 112, 17, 0
+      ]
+    });
+
+    expect(puppet.findImportantPixelPair(transparentImage, transparentImage)).to.be();
   });
 });
 

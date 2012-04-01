@@ -22,7 +22,7 @@
     <div id="container"></div>
 
     <script type="text/javascript">
-      var stats, scene, renderer, camera;
+      var stats, scene, renderer, camera, mesh;
 
       if (!init()) {
         TWEEN.start();
@@ -58,6 +58,10 @@
 
       // animation loop
       function animate() {
+        if (mesh) {
+          mesh.rotation.y += 0.01;
+        }
+
         // loop on request animation loop
         // - it has to be at the begining of the function
         // - see details at http://my.opera.com/emoller/blog/2011/12/20/requestanimationframe-for-smart-er-animating
@@ -87,7 +91,7 @@
           });
           renderer.setClearColorHex(0xBBBBBB, 1);
         // uncomment if webgl is required
-        }else{
+        } else {
         	Detector.addGetWebGLMessage();
         	throw new Error('we need webgl');
         }
@@ -105,7 +109,7 @@
 
         // put a camera in the scene
         camera = new THREE.PerspectiveCamera(35, window.innerWidth / window.innerHeight, 1, 10000);
-        camera.position.set(0, 5, 5);
+        camera.position.set(0, 0, 10);
         camera.lookAt(new THREE.Vector3());
         scene.add(camera);
 
@@ -118,18 +122,21 @@
       function setupModel() {
 				var loader = new THREE.JSONLoader();
 
-        model = puppet.triangulate([
-        //x, y, z, fragment
-          0, 0, 0, 0xFFCCDD
-        ]);
+        puppet.reconstruction({
+          front: 'image/front.png',
+          left: 'image/left.png',
+          right: 'image/right.png',
+          back: 'image/back.png',
+        }, function(model) {
+          loader.createModel(model, function(geometry) {
+            mesh = new THREE.Mesh(geometry, new THREE.MeshFaceMaterial()),
+                s = 0.2;
 
-				loader.createModel(model, function(geometry) {
-          var mesh = new THREE.Mesh(geometry, new THREE.MeshFaceMaterial()),
-              s = 1;
-
-          mesh.scale.set(s, s, s);
-          scene.add(mesh);
-        }, '');
+            mesh.scale.set(s, s, s);
+            mesh.rotation.set(Math.PI, 0, 0);
+            scene.add(mesh);
+          }, '');
+        });
       }
 
     </script>

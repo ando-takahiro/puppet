@@ -11,9 +11,18 @@ var puppet = (function() {
     _.map(urls, function(url, face) {
       exports.loadImage(url, function(img) {
         --count;
-        images[face] = img;
+
+        var canvas = document.createElement("canvas");
+        canvas.width = img.width;
+        canvas.height = img.height;
+
+        var ctx = canvas.getContext("2d");
+        ctx.drawImage(img, 0, 0);
+
+        images[face] = ctx.getImageData(0, 0, img.width, img.height);
+
         if (count <= 0) {
-          exports.doReconstruction(images, onSuccess);
+          onSuccess(exports.doReconstruction(images));
         }
       });
     });
@@ -22,21 +31,8 @@ var puppet = (function() {
   // ## private functions
 
   // ### reconstruction voxels
-  exports.doReconstruction = function(images, onSuccess) {
-    var hsvImages = {};
-
-    for (var k in images) {
-      hsvImages[k] = exports.toHsvImage(images[k]);
-    }
-
-    return exports.triangulate(
-      exports.generateVoxels(
-        hsvImages,
-        exports.guessCameraAngles(
-          exports.findImportantPixelPair(hsvImages.front, hsvImages.right)
-        )
-      )
-    );
+  exports.doReconstruction = function(images) {
+    return exports.triangulate(exports.generateVoxels(images));
   };
  
   exports.loadImage = function(src, onload) {
@@ -155,14 +151,125 @@ var puppet = (function() {
     return result;
   };
 
-  exports.guessCameraAngles = function(pixelPair) {
-    return {
-      horizontal: 0, vertical: 0
-    };
+  exports.matchPixels = function(front, right) {
+    var result = [];
+    for (var y1 = 0; y1 < front.height; ++y1) {
+      var pairs = [];
+      for (var x1 = front.width / 2; x1 < front.width; ++x1) {
+        var color = exports.readColor(front, x1, y1);
+        if (color.a > 0) {
+          var min = {sad: Number.MAX_VALUE};
+          for (var y2 = Math.max(y1 - SEARCH_RANGE, 0); y2 < Math.min(y1 + SEARCH_RANGE, right.height); ++y2) {
+            for (var x2 = 0; x2 < right.width; ++x2) {
+              var sad = exports.calcSad(front, x1, y1, right, x2, y2, SAD_BLOCK_SIZE);
+              if (sad < min.sad) {
+                min = {sad: sad, frontX: x1, frontY: y1, rightX: x2, rightY: y2};
+              }
+            }
+          }
+          if (min.pair) {
+            pairs.push(min);
+          }
+        }
+      }
+      if (row.length > 0) {
+        result.push({y: y1, pairs: pairs});
+      }
+    }
+    return result;
   };
 
-  exports.generateVoxels = function(bitmaps, angles) {
-    return [/*x, y, z, col, ...*/];
+  function doFitMin(func, first, firstValue, last, lastValue, recurCount) {
+    var MAX_RECUR = 10, EPSILON = 0.00000001,
+        mid = (first + last) / 2,
+        midValue = func(mid);
+
+    if (midValue <= EPSILON) {
+      return mid;
+    }
+
+    ++recurCount;
+    if (recurCount < MAX_RECUR) {
+      if (firstValue < lastValue) {
+        return doFitMin(func, first, firstValue, mid, midValue, recurCount);
+      } else {
+        return doFitMin(func, mid, midValue, last, lastValue, recurCount);
+      }
+    } else {
+      return _.min([
+        {key: first, value: firstValue},
+        {key: last, value: lastValue},
+        {key: mid, value: midValue}
+      ], function(pair) {return pair.value;}).key;
+    }
+  }
+
+  exports.fitMin = function(func, first, last) {
+    return doFitMin(func, first, func(first), last, func(last), 0);
+  };
+
+  exports.calcZ = function(frontX, rightX, theta) {
+    return frontX * Math.tan(theta) + rightX * sin(theta);
+  };
+
+  exports.evaluateCameraAngles = function(pairs, width, theta) {
+    //var penalty = 0;
+    //for (var r = 0; r < pairs.length; ++r) {
+    //  var row = paris[r];
+    //  for (var c = 0; c < row.pairs.length; ++c) {
+    //    var pair = row.pairs[c],
+    //        z = exports.calcZ(pair.frontX, pair.rightX, theta);
+
+    //    if (Math.abs(z) <= width / 2 || 
+    //  }
+    //}
+    //return 0;
+  };
+
+  exports.fillVoxelLine = function(voxels, image, xsign, zfirst, zlast) {
+    zfirst = Math.floor(zfirst);
+    zlast = Math.floor(zlast);
+
+    for (var x = 0; x < image.width; ++x) {
+      if (!voxels[x]) {
+        voxels[x] = [];
+      }
+      for (var y = 0; y < image.height; ++y) {
+        var i = ((xsign > 0 ? x : image.width - x - 1) + y * image.width) * 4,
+            c = (image.data[i] << 16) |
+                (image.data[i + 1] << 8) |
+                image.data[i + 2] |
+                (image.data[i + 3] << 24);
+
+        if (!voxels[x][y]) {
+          voxels[x][y] = [];
+        }
+        for (var z = zfirst; z < zlast; ++z) {
+          voxels[x][y][z] = c;
+        }
+      }
+    }
+  };
+
+  exports.generateVoxels = function(images) {
+    var voxels = [],
+        w = images.front.width, hw = w / 2;
+
+    exports.fillVoxelLine(voxels, images.front, 1, 0, hw);
+    exports.fillVoxelLine(voxels, images.back, -1, hw, w);
+
+    return _.reduce(voxels, function(ret, plane, x) {
+      for (var y = 0; y < plane.length; ++y) {
+        var line = plane[y];
+        for (var z = 0; z < line.length; ++z) {
+          var c = line[z];
+          if ((c >> 24) & 0xFF !== 0) {
+            ret.push(x - hw - 0.5, y - hw - 0.5, hw - z - 0.5, c);
+          }
+        }
+      }
+      return ret;
+    }, []);
   };
 
   // ### triangulation
