@@ -1,7 +1,7 @@
 # puppet
 
-pixel art -> voxel charactor
+pixel art -> voxel character?
 
 ## thanks
 
-assets from ![this site](http://www.tekepon.net/fsm/).
+assets from [this site](http://www.tekepon.net/fsm/).
